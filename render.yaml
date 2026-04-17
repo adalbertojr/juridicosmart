@@ -2,8 +2,10 @@ services:
   - type: web
     name: juridicosmart
     env: python
-    buildCommand: pip install -r requirements.txt && playwright install chromium && playwright install-deps chromium
-    startCommand: gunicorn app:app --timeout 60
+    buildCommand: "pip install -r requirements.txt && python -m playwright install chromium && python -m playwright install-deps chromium"
+    startCommand: "gunicorn app:app --timeout 120 --workers 1"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: /opt/render/project/.playwright
