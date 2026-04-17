@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JurídicoSmart</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0f1b2d; --navy-mid: #162236; --navy-light: #1e3050;
+    --gold: #c9a84c; --gold-light: #e8c76a; --gold-dim: rgba(201,168,76,0.15);
+    --slate: #8ba3c0; --slate-light: #b8cfe0; --white: #f0f4f8;
+    --danger: #e05555; --danger-dim: rgba(224,85,85,0.15);
+    --success: #3dba7b; --success-dim: rgba(61,186,123,0.15);
+    --warn: #e07d35; --border: rgba(139,163,192,0.18);
+    --card: rgba(30,48,80,0.6);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--navy); color: var(--white); min-height: 100vh; }
+  body::before { content:''; position:fixed; top:-200px; right:-200px; width:600px; height:600px; background:radial-gradient(circle,rgba(201,168,76,0.06) 0%,transparent 70%); pointer-events:none; }
+
+  header { background:rgba(15,27,45,0.95); border-bottom:1px solid var(--border); backdrop-filter:blur(12px); position:sticky; top:0; z-index:100; padding:0 32px; display:flex; align-items:center; justify-content:space-between; height:64px; }
+  .logo { font-family:'Playfair Display',serif; font-size:22px; color:var(--gold); }
+  .logo span { color:var(--slate-light); font-size:13px; font-family:'DM Sans',sans-serif; font-weight:300; margin-left:10px; }
+  .header-info { font-size:12px; color:var(--slate); text-align:right; line-height:1.6; }
+  .header-info strong { color:var(--gold); }
+  .conn-status { display:inline-flex; align-items:center; gap:5px; font-size:11px; margin-top:2px; }
+  .conn-dot { width:7px; height:7px; border-radius:50%; background:var(--slate); }
+  .conn-dot.online { background:var(--success); box-shadow:0 0 6px var(--success); }
+  .conn-dot.offline { background:var(--danger); }
+
+  nav { background:var(--navy-mid); border-bottom:1px solid var(--border); display:flex; padding:0 32px; gap:4px; overflow-x:auto; }
+  .tab { padding:14px 20px; font-size:13px; font-weight:500; color:var(--slate); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; display:flex; align-items:center; gap:8px; white-space:nowrap; }
+  .tab:hover { color:var(--white); }
+  .tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+  .badge { background:var(--danger); color:white; font-size:10px; font-weight:600; padding:2px 6px; border-radius:10px; min-width:18px; text-align:center; }
+  .badge.gold { background:var(--gold); color:var(--navy); }
+
+  main { max-width:1100px; margin:0 auto; padding:32px 24px; }
+  .section { display:none; }
+  .section.active { display:block; }
+
+  .page-title { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+  .page-title h2 { font-family:'Playfair Display',serif; font-size:26px; font-weight:600; }
+  .page-title p { font-size:13px; color:var(--slate); margin-top:3px; }
+
+  /* BUSCA CONFIG */
+  .busca-config { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px 24px; margin-bottom:24px; backdrop-filter:blur(8px); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .busca-config label { font-size:11px; font-weight:600; color:var(--slate); text-transform:uppercase; letter-spacing:0.06em; display:block; margin-bottom:4px; }
+  .busca-config input { background:rgba(15,27,45,0.8); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:13px; outline:none; width:140px; }
+  .busca-config input:focus { border-color:var(--gold); }
+
+  /* CARDS */
+  .intimacao-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:22px 26px; margin-bottom:16px; backdrop-filter:blur(8px); transition:border-color 0.2s; position:relative; overflow:hidden; }
+  .intimacao-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--gold); border-radius:3px 0 0 3px; }
+  .intimacao-card:hover { border-color:rgba(201,168,76,0.4); }
+  .intimacao-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; gap:16px; }
+  .intimacao-meta { flex:1; }
+  .intimacao-diario { font-size:11px; font-weight:600; color:var(--gold); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:4px; }
+  .intimacao-processo { font-family:'DM Mono',monospace; font-size:13px; color:var(--slate-light); margin-bottom:6px; }
+  .intimacao-partes { font-size:13px; color:var(--white); font-weight:500; }
+  .intimacao-datas { text-align:right; font-size:12px; color:var(--slate); line-height:1.8; flex-shrink:0; }
+  .intimacao-datas strong { color:var(--slate-light); }
+  .intimacao-texto { font-size:12.5px; color:var(--slate-light); line-height:1.65; max-height:60px; overflow:hidden; position:relative; margin-bottom:16px; }
+  .intimacao-texto.expanded { max-height:none; }
+  .intimacao-texto::after { content:''; position:absolute; bottom:0; left:0; right:0; height:24px; background:linear-gradient(transparent,var(--card)); }
+  .intimacao-texto.expanded::after { display:none; }
+  .intimacao-actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+  .btn { padding:8px 18px; border-radius:8px; font-size:13px; font-weight:500; font-family:'DM Sans',sans-serif; cursor:pointer; border:none; transition:all 0.2s; }
+  .btn-gold { background:var(--gold); color:var(--navy); }
+  .btn-gold:hover { background:var(--gold-light); transform:translateY(-1px); }
+  .btn-outline { background:transparent; color:var(--slate); border:1px solid var(--border); }
+  .btn-outline:hover { border-color:var(--slate); color:var(--white); }
+  .btn-danger { background:var(--danger-dim); color:var(--danger); border:1px solid rgba(224,85,85,0.3); }
+  .btn-danger:hover { background:rgba(224,85,85,0.25); }
+  .btn-success { background:var(--success-dim); color:var(--success); border:1px solid rgba(61,186,123,0.3); }
+  .btn-success:hover { background:rgba(61,186,123,0.25); }
+  .btn-sm { padding:6px 12px; font-size:12px; }
+  .btn:disabled { opacity:0.5; cursor:not-allowed; }
+  .ver-mais { font-size:11px; color:var(--gold); cursor:pointer; margin-left:auto; background:none; border:none; font-family:'DM Sans',sans-serif; font-weight:500; }
+
+  /* LOADING */
+  .loading { text-align:center; padding:48px; }
+  .spinner { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 16px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .loading p { color:var(--slate); font-size:14px; }
+
+  /* EMPTY */
+  .empty-state { text-align:center; padding:48px 24px; color:var(--slate); }
+  .empty-state .empty-icon { font-size:40px; margin-bottom:12px; }
+  .empty-state p { font-size:14px; line-height:1.8; }
+
+  /* ALERT */
+  .alert { padding:14px 18px; border-radius:10px; font-size:13px; margin-bottom:20px; display:flex; align-items:flex-start; gap:10px; }
+  .alert-warn { background:rgba(224,125,53,0.15); border:1px solid rgba(224,125,53,0.4); color:#f0a060; }
+  .alert-info { background:var(--gold-dim); border:1px solid rgba(201,168,76,0.4); color:var(--gold-light); }
+  .alert-success { background:var(--success-dim); border:1px solid rgba(61,186,123,0.4); color:#5ddaa0; }
+
+  /* MODAL */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(10,18,30,0.8); backdrop-filter:blur(6px); z-index:200; align-items:center; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--navy-mid); border:1px solid var(--border); border-radius:16px; padding:32px; width:100%; max-width:520px; margin:16px; position:relative; animation:slideUp 0.25s ease; }
+  @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .modal h3 { font-family:'Playfair Display',serif; font-size:20px; margin-bottom:6px; }
+  .modal-sub { font-size:12px; color:var(--slate); margin-bottom:24px; }
+  .modal-close { position:absolute; top:20px; right:20px; background:none; border:none; color:var(--slate); font-size:20px; cursor:pointer; }
+  .modal-close:hover { color:var(--white); }
+  .tipo-selector { display:flex; gap:10px; margin-bottom:24px; }
+  .tipo-btn { flex:1; padding:12px; border:1px solid var(--border); border-radius:10px; background:transparent; color:var(--slate); font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; cursor:pointer; transition:all 0.2s; text-align:center; }
+  .tipo-btn:hover { border-color:var(--gold); color:var(--gold-light); }
+  .tipo-btn.selected { border-color:var(--gold); background:var(--gold-dim); color:var(--gold); }
+  .tipo-btn .tipo-icon { font-size:22px; display:block; margin-bottom:6px; }
+  .form-group { margin-bottom:18px; }
+  .form-group label { display:block; font-size:12px; font-weight:600; color:var(--slate); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:7px; }
+  .form-group input, .form-group textarea, .form-group select { width:100%; background:rgba(15,27,45,0.8); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s; }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color:var(--gold); }
+  .form-group textarea { resize:vertical; min-height:80px; }
+  .form-group select option { background:var(--navy); }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .modal-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:24px; }
+
+  /* AGENDA */
+  .agenda-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:28px; }
+  .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; backdrop-filter:blur(8px); }
+  .stat-label { font-size:11px; color:var(--slate); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px; }
+  .stat-value { font-family:'Playfair Display',serif; font-size:36px; }
+  .stat-value.red { color:var(--danger); } .stat-value.gold { color:var(--gold); } .stat-value.green { color:var(--success); }
+  .prazo-item { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px 22px; margin-bottom:12px; display:flex; align-items:center; gap:18px; backdrop-filter:blur(8px); transition:all 0.2s; }
+  .prazo-item:hover { border-color:rgba(201,168,76,0.3); }
+  .prazo-item.done { opacity:0.45; }
+  .prazo-item.done .prazo-titulo { text-decoration:line-through; }
+  .prazo-urgencia { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .urgencia-red { background:var(--danger); box-shadow:0 0 8px var(--danger); }
+  .urgencia-gold { background:var(--gold); box-shadow:0 0 8px var(--gold); }
+  .urgencia-green { background:var(--success); }
+  .prazo-info { flex:1; min-width:0; }
+  .prazo-tipo { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:3px; }
+  .prazo-tipo.audiencia { color:var(--gold); } .prazo-tipo.contestacao { color:#7ba7e0; }
+  .prazo-titulo { font-size:14px; font-weight:500; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .prazo-processo { font-family:'DM Mono',monospace; font-size:11px; color:var(--slate); }
+  .prazo-data { text-align:right; flex-shrink:0; }
+  .prazo-data .data-valor { font-size:15px; font-weight:600; }
+  .prazo-data .data-hora { font-size:12px; color:var(--slate); }
+  .prazo-data .data-label { font-size:10px; margin-top:2px; }
+  .data-label.vence-hoje { color:var(--danger); font-weight:600; }
+  .data-label.vence-breve { color:var(--warn); font-weight:600; }
+  .section-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--slate); margin:24px 0 12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+  .filter-bar { display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+  .filter-btn { padding:6px 14px; border-radius:20px; font-size:12px; font-weight:500; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--slate); font-family:'DM Sans',sans-serif; transition:all 0.2s; }
+  .filter-btn.active { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); }
+
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--success); color:white; padding:12px 20px; border-radius:10px; font-size:13px; font-weight:500; z-index:999; transform:translateY(80px); opacity:0; transition:all 0.3s; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.error { background:var(--danger); }
+  .toast.warn { background:var(--warn); }
+
+  @media(max-width:640px) {
+    header { padding:0 16px; } nav { padding:0 12px; } main { padding:20px 16px; }
+    .agenda-stats { grid-template-columns:1fr; } .form-row { grid-template-columns:1fr; }
+    .tipo-selector { flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚖ JurídicoSmart <span>Gestão de Intimações</span></div>
+  <div class="header-info">
+    <strong>Adalberto Bueno Junior</strong> · OAB/RS 70.659<br>
+    <span class="conn-status"><span class="conn-dot" id="conn-dot"></span><span id="conn-label">verificando...</span></span>
+  </div>
+</header>
+
+<nav>
+  <div class="tab active" onclick="showTab('intimacoes',this)">📬 Intimações <span class="badge" id="badge-int">0</span></div>
+  <div class="tab" onclick="showTab('agenda',this)">📅 Agenda <span class="badge gold" id="badge-ag">0</span></div>
+  <div class="tab" onclick="showTab('config',this)">⚙️ Configurações</div>
+</nav>
+
+<main>
+
+  <!-- INTIMAÇÕES -->
+  <section class="section active" id="sec-intimacoes">
+    <div class="page-title">
+      <div>
+        <h2>Intimações</h2>
+        <p id="subtitulo-int">Buscando publicações de hoje...</p>
+      </div>
+      <button class="btn btn-gold" onclick="buscarHoje()" id="btn-buscar">🔄 Buscar Hoje</button>
+    </div>
+
+    <div id="alerta-api"></div>
+
+    <div class="busca-config">
+      <div><label>OAB</label><input type="text" id="cfg-oab" value="70659" style="width:100px"></div>
+      <div><label>UF</label><input type="text" id="cfg-uf" value="RS" style="width:70px"></div>
+      <div><label>De</label><input type="date" id="cfg-inicio"></div>
+      <div><label>Até</label><input type="date" id="cfg-fim"></div>
+      <div style="margin-top:auto"><button class="btn btn-outline" onclick="buscarPeriodo()">Buscar período</button></div>
+    </div>
+
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filtrar('todas',this)">Todas</button>
+      <button class="filter-btn" onclick="filtrar('pendentes',this)">Pendentes</button>
+      <button class="filter-btn" onclick="filtrar('confirmadas',this)">Confirmadas</button>
+    </div>
+
+    <div id="lista-intimacoes"><div class="loading"><div class="spinner"></div><p>Conectando ao servidor...</p></div></div>
+  </section>
+
+  <!-- AGENDA -->
+  <section class="section" id="sec-agenda">
+    <div class="page-title">
+      <div><h2>Agenda de Prazos</h2><p>Audiências e contestações pendentes</p></div>
+    </div>
+    <div class="agenda-stats">
+      <div class="stat-card"><div class="stat-label">Vence Hoje</div><div class="stat-value red" id="stat-hoje">0</div></div>
+      <div class="stat-card"><div class="stat-label">Esta Semana</div><div class="stat-value gold" id="stat-semana">0</div></div>
+      <div class="stat-card"><div class="stat-label">Total Pendente</div><div class="stat-value green" id="stat-total">0</div></div>
+    </div>
+    <div id="lista-agenda"></div>
+  </section>
+
+  <!-- CONFIG -->
+  <section class="section" id="sec-config">
+    <div class="page-title"><div><h2>Configurações</h2><p>Ajustes do sistema</p></div></div>
+    <div class="stat-card" style="margin-bottom:16px">
+      <div class="stat-label">URL do Servidor (Backend)</div>
+      <div style="margin-top:10px;display:flex;gap:10px">
+        <input type="text" id="cfg-server-url" style="flex:1;background:rgba(15,27,45,0.8);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--white);font-family:'DM Mono',monospace;font-size:13px;outline:none" placeholder="https://juridicosmart.onrender.com">
+        <button class="btn btn-gold" onclick="salvarServerUrl()">Salvar</button>
+      </div>
+      <p style="font-size:12px;color:var(--slate);margin-top:8px">Cole aqui a URL do seu servidor no Render após o deploy.</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Status da Conexão</div>
+      <div id="status-conexao" style="margin-top:12px;font-size:13px;color:var(--slate)">Verificando...</div>
+      <button class="btn btn-outline btn-sm" onclick="testarConexao()" style="margin-top:12px">Testar conexão</button>
+    </div>
+  </section>
+
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-confirmar">
+  <div class="modal">
+    <button class="modal-close" onclick="fecharModal()">✕</button>
+    <h3>Confirmar Intimação</h3>
+    <p class="modal-sub" id="modal-sub"></p>
+    <div class="tipo-selector">
+      <button class="tipo-btn selected" id="btn-audiencia" onclick="selecionarTipo('audiencia')"><span class="tipo-icon">🏛️</span>Audiência</button>
+      <button class="tipo-btn" id="btn-contestacao" onclick="selecionarTipo('contestacao')"><span class="tipo-icon">📝</span>Prazo/Contestação</button>
+      <button class="tipo-btn" id="btn-outro" onclick="selecionarTipo('outro')"><span class="tipo-icon">📌</span>Outro Prazo</button>
+    </div>
+    <div id="form-audiencia">
+      <div class="form-group"><label>Descrição</label><input type="text" id="aud-desc" placeholder="Ex: Audiência Inicial"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Data</label><input type="date" id="aud-data"></div>
+        <div class="form-group"><label>Horário</label><input type="time" id="aud-hora"></div>
+      </div>
+      <div class="form-group"><label>Local</label><input type="text" id="aud-local" placeholder="Ex: 1ª Vara do Trabalho de Porto Alegre"></div>
+      <div class="form-group"><label>Observações</label><textarea id="aud-obs"></textarea></div>
+    </div>
+    <div id="form-contestacao" style="display:none">
+      <div class="form-group"><label>Descrição</label><input type="text" id="cont-desc" placeholder="Ex: Contestação"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Data Limite</label><input type="date" id="cont-data"></div>
+        <div class="form-group"><label>Tipo</label>
+          <select id="cont-tipo"><option>Contestação</option><option>Recurso Ordinário</option><option>Contrarrazões</option><option>Impugnação</option><option>Manifestação</option><option>Outro</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>Observações</label><textarea id="cont-obs"></textarea></div>
+    </div>
+    <div id="form-outro" style="display:none">
+      <div class="form-group"><label>Descrição</label><input type="text" id="out-desc"></div>
+      <div class="form-group"><label>Data Limite</label><input type="date" id="out-data"></div>
+      <div class="form-group"><label>Observações</label><textarea id="out-obs"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-gold" onclick="salvarPrazo()">✓ Salvar na Agenda</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────
+let SERVER_URL = localStorage.getItem('server_url') || '';
+let intimacoes = [];
+let agenda = [];
+let intimacaoAtual = null;
+let tipoAtual = 'audiencia';
+let filtroAtivo = 'todas';
+
+// Data padrão: hoje
+const hoje = new Date();
+const hojeStr = hoje.toISOString().split('T')[0];
+document.getElementById('cfg-inicio').value = hojeStr;
+document.getElementById('cfg-fim').value = hojeStr;
+if (SERVER_URL) document.getElementById('cfg-server-url').value = SERVER_URL;
+
+// ─── INICIALIZAÇÃO ────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  await testarConexao();
+  if (SERVER_URL) {
+    await carregarIntimacoes();
+    await carregarAgenda();
+  }
+});
+
+// ─── CONEXÃO ─────────────────────────────────────
+async function testarConexao() {
+  const dot = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-label');
+  const statusDiv = document.getElementById('status-conexao');
+
+  if (!SERVER_URL) {
+    dot.className = 'conn-dot offline';
+    label.textContent = 'servidor não configurado';
+    if (statusDiv) statusDiv.innerHTML = `<span style="color:var(--warn)">⚠ Configure a URL do servidor na aba Configurações.</span>`;
+    mostrarAlertaAPI();
+    renderIntimacoesMock();
+    return;
+  }
+
+  try {
+    const resp = await fetch(`${SERVER_URL}/api/status`, { signal: AbortSignal.timeout(8000) });
+    if (resp.ok) {
+      dot.className = 'conn-dot online';
+      label.textContent = 'conectado';
+      if (statusDiv) statusDiv.innerHTML = `<span style="color:var(--success)">✓ Servidor online e respondendo.</span>`;
+    } else { throw new Error('status ' + resp.status); }
+  } catch (e) {
+    dot.className = 'conn-dot offline';
+    label.textContent = 'servidor offline';
+    if (statusDiv) statusDiv.innerHTML = `<span style="color:var(--danger)">✗ Não foi possível conectar: ${e.message}</span>`;
+    mostrarAlertaAPI();
+    renderIntimacoesMock();
+  }
+}
+
+function salvarServerUrl() {
+  SERVER_URL = document.getElementById('cfg-server-url').value.trim().replace(/\/$/, '');
+  localStorage.setItem('server_url', SERVER_URL);
+  showToast('✓ URL salva! Reconectando...');
+  setTimeout(() => { testarConexao(); carregarIntimacoes(); carregarAgenda(); }, 500);
+}
+
+function mostrarAlertaAPI() {
+  document.getElementById('alerta-api').innerHTML = `
+    <div class="alert alert-warn">
+      ⚠️ <div><strong>Servidor não conectado.</strong> Configure a URL do servidor na aba <strong>Configurações</strong> após fazer o deploy no Render. Por enquanto, mostrando dados de exemplo.</div>
+    </div>`;
+}
+
+// ─── TABS ─────────────────────────────────────────
+function showTab(tab, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + tab).classList.add('active');
+  el.classList.add('active');
+  if (tab === 'agenda') renderAgenda();
+}
+
+// ─── FILTRO ───────────────────────────────────────
+function filtrar(f, btn) {
+  filtroAtivo = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderIntimacoes();
+}
+
+// ─── CARREGAR INTIMAÇÕES ─────────────────────────
+async function carregarIntimacoes() {
+  try {
+    const resp = await fetch(`${SERVER_URL}/api/intimacoes`);
+    intimacoes = await resp.json();
+    renderIntimacoes();
+    atualizarBadges();
+  } catch(e) {
+    renderIntimacoesMock();
+  }
+}
+
+async function buscarHoje() {
+  const oab = document.getElementById('cfg-oab').value;
+  const uf = document.getElementById('cfg-uf').value;
+  const btn = document.getElementById('btn-buscar');
+  btn.disabled = true;
+  btn.textContent = '⏳ Buscando...';
+  document.getElementById('lista-intimacoes').innerHTML = '<div class="loading"><div class="spinner"></div><p>Consultando comunica.pje.jus.br...</p></div>';
+
+  try {
+    const resp = await fetch(`${SERVER_URL}/api/intimacoes/buscar?oab=${oab}&uf=${uf}&inicio=${hojeStr}&fim=${hojeStr}`);
+    const data = await resp.json();
+
+    if (data.sucesso && data.dados) {
+      await processarResultadosBusca(data.dados);
+      showToast(`✓ Busca concluída`);
+    } else {
+      showToast('⚠ API não retornou dados. Verifique o servidor.', 'warn');
+      renderIntimacoesMock();
+    }
+  } catch(e) {
+    showToast('✗ Erro ao buscar. Servidor offline?', 'error');
+    renderIntimacoesMock();
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔄 Buscar Hoje';
+  }
+}
+
+async function buscarPeriodo() {
+  const oab = document.getElementById('cfg-oab').value;
+  const uf = document.getElementById('cfg-uf').value;
+  const ini = document.getElementById('cfg-inicio').value;
+  const fim = document.getElementById('cfg-fim').value;
+  if (!ini || !fim) { showToast('Informe as datas', 'error'); return; }
+  document.getElementById('lista-intimacoes').innerHTML = '<div class="loading"><div class="spinner"></div><p>Buscando período...</p></div>';
+  try {
+    const resp = await fetch(`${SERVER_URL}/api/intimacoes/buscar?oab=${oab}&uf=${uf}&inicio=${ini}&fim=${fim}`);
+    const data = await resp.json();
+    if (data.sucesso) { await processarResultadosBusca(data.dados); showToast('✓ Busca concluída'); }
+    else { showToast('⚠ Sem resultados para o período', 'warn'); }
+  } catch(e) { showToast('✗ Erro na busca', 'error'); }
+}
+
+async function processarResultadosBusca(dados) {
+  // Adapta o retorno da API do comunica.pje para o nosso formato
+  let novas = [];
+  const lista = Array.isArray(dados) ? dados : (dados.comunicacoes || dados.content || dados.items || []);
+  lista.forEach((item, idx) => {
+    novas.push({
+      id: item.id || item.numeroComunicacao || `auto-${Date.now()}-${idx}`,
+      diario: item.nomeOrgao || item.tribunal || 'Diário Oficial',
+      disponibilizacao: item.dataDisponibilizacao || hojeStr,
+      publicacao: item.dataPublicacao || hojeStr,
+      numero: item.numeroComunicacao || item.id || '',
+      processo: item.numeroProcesso || '',
+      orgao: item.nomeOrgao || '',
+      partes: (item.partes || []).map(p => p.nome).join(' × ') || item.destinatario || '',
+      texto: item.teor || item.texto || item.conteudo || JSON.stringify(item),
+      status: 'pendente'
+    });
+  });
+
+  // Salva no servidor
+  for (const int of novas) {
+    try { await fetch(`${SERVER_URL}/api/intimacoes`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(int) }); } catch(e){}
+  }
+
+  await carregarIntimacoes();
+  document.getElementById('subtitulo-int').textContent = `${novas.length} intimação(ões) encontrada(s)`;
+}
+
+// ─── RENDER INTIMAÇÕES ───────────────────────────
+function renderIntimacoesMock() {
+  intimacoes = [
+    { id:'1', diario:'TRT 4ª Região (RS) — DJN', disponibilizacao:'17/04/2026', publicacao:'20/04/2026', numero:'1575537023', processo:'0020561-16.2017.5.04.0001', orgao:'1ª VARA DO TRABALHO DE PORTO ALEGRE', partes:'RAFAEL RODRIGUES PERFEITO × RASTREAR SAT LTDA', texto:'Fica V. Sa. intimado para tomar ciência do Despacho ID 96a7b78. Pagamento de R$1.245,00, valor inferior ao total da dívida de R$1.458,77, com correção monetária e juros de 1% ao mês. Prazo de 48h para quitação do débito remanescente.', status:'pendente' },
+    { id:'2', diario:'TRT 4ª Região (RS) — DJN', disponibilizacao:'17/04/2026', publicacao:'20/04/2026', numero:'1575522100', processo:'0020878-40.2024.5.04.0010', orgao:'10ª VARA DO TRABALHO DE PORTO ALEGRE', partes:'JOSE ROBERTO BLANCO MACHADO × MOSSAD SEGURANCA E CONSULTORIA LTDA', texto:'Fica V. Sa. intimado de que foi designada AUDIÊNCIA INAUGURAL para o dia 22/04/2026 às 14h30, na 10ª Vara do Trabalho de Porto Alegre.', status:'pendente' },
+    { id:'3', diario:'TJRS — DJE', disponibilizacao:'17/04/2026', publicacao:'17/04/2026', numero:'1575498033', processo:'5000078292015821001', orgao:'TRT 4ª REGIÃO — EXECUÇÃO', partes:'CIEX DO BRASIL × META CORREIAS & MAQUINAS LTDA', texto:'Fica V. Sa. intimado para manifestar sobre cálculos de liquidação. Valor em execução: R$ 42.350,00. Prazo de 15 dias úteis para impugnação.', status:'pendente' }
+  ];
+  renderIntimacoes();
+  atualizarBadges();
+}
+
+function renderIntimacoes() {
+  const lista = document.getElementById('lista-intimacoes');
+  let items = intimacoes.filter(i => {
+    if (filtroAtivo === 'pendentes') return i.status === 'pendente';
+    if (filtroAtivo === 'confirmadas') return i.status === 'confirmada';
+    return true;
+  });
+  if (items.length === 0) {
+    lista.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>Nenhuma intimação encontrada.<br>Clique em "Buscar Hoje" para consultar o comunica.pje.</p></div>`;
+    return;
+  }
+  lista.innerHTML = items.map(i => `
+    <div class="intimacao-card">
+      <div class="intimacao-header">
+        <div class="intimacao-meta">
+          <div class="intimacao-diario">⚖ ${i.diario}</div>
+          <div class="intimacao-processo">${i.processo}</div>
+          <div class="intimacao-partes">${i.partes}</div>
+          <div style="font-size:11px;color:var(--slate);margin-top:4px">${i.orgao}</div>
+        </div>
+        <div class="intimacao-datas">
+          <strong>Disp.:</strong> ${i.disponibilizacao}<br>
+          <strong>Pub.:</strong> ${i.publicacao}<br>
+          <strong>Nº:</strong> ${i.numero}
+        </div>
+      </div>
+      <div class="intimacao-texto" id="texto-${i.id}">${i.texto}</div>
+      <div class="intimacao-actions">
+        ${i.status === 'pendente' ? `
+          <button class="btn btn-gold btn-sm" onclick="abrirModal('${i.id}')">✓ Confirmar</button>
+          <button class="btn btn-danger btn-sm" onclick="apagarIntimacao('${i.id}')">✕ Apagar</button>
+        ` : `<span style="font-size:12px;color:var(--success)">✓ Confirmada</span>`}
+        <button class="ver-mais" onclick="toggleTexto('${i.id}',this)">▼ Ver inteiro teor</button>
+      </div>
+    </div>`).join('');
+}
+
+function toggleTexto(id, btn) {
+  const el = document.getElementById('texto-' + id);
+  el.classList.toggle('expanded');
+  btn.textContent = el.classList.contains('expanded') ? '▲ Recolher' : '▼ Ver inteiro teor';
+}
+
+async function apagarIntimacao(id) {
+  if (SERVER_URL) {
+    try { await fetch(`${SERVER_URL}/api/intimacoes/${id}/status`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'apagada'}) }); } catch(e){}
+  }
+  intimacoes = intimacoes.filter(i => i.id !== id);
+  renderIntimacoes();
+  atualizarBadges();
+  showToast('Intimação removida.', 'error');
+}
+
+// ─── MODAL ────────────────────────────────────────
+function abrirModal(id) {
+  intimacaoAtual = intimacoes.find(i => i.id == id);
+  document.getElementById('modal-sub').textContent = `${intimacaoAtual.processo} · ${intimacaoAtual.partes.substring(0,60)}`;
+  selecionarTipo('audiencia');
+  document.getElementById('modal-confirmar').classList.add('open');
+}
+function fecharModal() { document.getElementById('modal-confirmar').classList.remove('open'); }
+function selecionarTipo(tipo) {
+  tipoAtual = tipo;
+  ['audiencia','contestacao','outro'].forEach(t => { document.getElementById('btn-'+t).classList.remove('selected'); document.getElementById('form-'+t).style.display='none'; });
+  document.getElementById('btn-'+tipo).classList.add('selected');
+  document.getElementById('form-'+tipo).style.display='block';
+}
+
+async function salvarPrazo() {
+  let prazo = { id: Date.now(), processoId: intimacaoAtual.id, processo: intimacaoAtual.processo, partes: intimacaoAtual.partes, tipo: tipoAtual, done: false };
+  if (tipoAtual === 'audiencia') {
+    const d = document.getElementById('aud-data').value;
+    if (!d) { showToast('Informe a data', 'error'); return; }
+    prazo.descricao = document.getElementById('aud-desc').value || `Audiência`;
+    prazo.data = d; prazo.hora = document.getElementById('aud-hora').value;
+    prazo.local = document.getElementById('aud-local').value;
+    prazo.obs = document.getElementById('aud-obs').value;
+  } else if (tipoAtual === 'contestacao') {
+    const d = document.getElementById('cont-data').value;
+    if (!d) { showToast('Informe a data', 'error'); return; }
+    prazo.descricao = document.getElementById('cont-desc').value || document.getElementById('cont-tipo').value;
+    prazo.subtipo = document.getElementById('cont-tipo').value;
+    prazo.data = d; prazo.hora = '23:59';
+    prazo.obs = document.getElementById('cont-obs').value;
+  } else {
+    const d = document.getElementById('out-data').value;
+    if (!d) { showToast('Informe a data', 'error'); return; }
+    prazo.descricao = document.getElementById('out-desc').value || 'Prazo';
+    prazo.data = d; prazo.hora = '23:59';
+    prazo.obs = document.getElementById('out-obs').value;
+  }
+
+  agenda.push(prazo);
+  if (SERVER_URL) {
+    try { await fetch(`${SERVER_URL}/api/agenda`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(prazo) }); } catch(e){}
+  }
+
+  // Marca intimação confirmada
+  const idx = intimacoes.findIndex(i => i.id == intimacaoAtual.id);
+  if (idx !== -1) {
+    intimacoes[idx].status = 'confirmada';
+    if (SERVER_URL) { try { await fetch(`${SERVER_URL}/api/intimacoes/${intimacaoAtual.id}/status`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'confirmada'}) }); } catch(e){} }
+  }
+  fecharModal();
+  renderIntimacoes();
+  atualizarBadges();
+  showToast('✓ Prazo salvo na agenda!');
+}
+
+// ─── AGENDA ──────────────────────────────────────
+async function carregarAgenda() {
+  if (!SERVER_URL) return;
+  try {
+    const resp = await fetch(`${SERVER_URL}/api/agenda`);
+    agenda = await resp.json();
+    renderAgenda();
+  } catch(e) {}
+}
+
+function renderAgenda() {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const pendentes = agenda.filter(p => !p.done).sort((a,b) => new Date(a.data)-new Date(b.data));
+  const concluidos = agenda.filter(p => p.done);
+  const hojeN = pendentes.filter(p => { const d=new Date(p.data+'T00:00:00'); return d.toDateString()===hoje.toDateString(); }).length;
+  const semN = pendentes.filter(p => { const d=new Date(p.data+'T00:00:00'); const diff=(d-hoje)/86400000; return diff>=0&&diff<=7; }).length;
+  document.getElementById('stat-hoje').textContent = hojeN;
+  document.getElementById('stat-semana').textContent = semN;
+  document.getElementById('stat-total').textContent = pendentes.length;
+  atualizarBadges();
+
+  const lista = document.getElementById('lista-agenda');
+  if (agenda.length === 0) { lista.innerHTML = `<div class="empty-state"><div class="empty-icon">📅</div><p>Nenhum prazo cadastrado ainda.<br>Confirme uma intimação para começar.</p></div>`; return; }
+  let html = '';
+  if (pendentes.length) { html += `<div class="section-label">🔴 Pendentes (${pendentes.length})</div>`; html += pendentes.map(p => prazoHTML(p,hoje)).join(''); }
+  if (concluidos.length) { html += `<div class="section-label" style="margin-top:32px">✅ Concluídos</div>`; html += concluidos.map(p => prazoHTML(p,hoje)).join(''); }
+  lista.innerHTML = html;
+}
+
+function prazoHTML(p, hoje) {
+  const dataP = new Date(p.data+'T00:00:00');
+  const diff = Math.ceil((dataP-hoje)/86400000);
+  let urg = 'urgencia-green', label = `em ${diff} dias`, lblClass = '';
+  if (!p.done) {
+    if (diff<=0) { urg='urgencia-red'; label='VENCE HOJE'; lblClass='vence-hoje'; }
+    else if (diff<=3) { urg='urgencia-gold'; label=`em ${diff} dia(s)`; lblClass='vence-breve'; }
+  }
+  const dataFmt = new Date(p.data+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+  return `<div class="prazo-item ${p.done?'done':''}">
+    <div class="prazo-urgencia ${p.done?'':urg}"></div>
+    <div class="prazo-info">
+      <div class="prazo-tipo ${p.tipo}">${p.tipo==='audiencia'?'🏛 Audiência':p.tipo==='contestacao'?'📝 '+(p.subtipo||'Contestação'):'📌 Prazo'}</div>
+      <div class="prazo-titulo">${p.descricao}</div>
+      <div class="prazo-processo">${p.processo}</div>
+      ${p.local?`<div style="font-size:11px;color:var(--slate);margin-top:3px">📍 ${p.local}</div>`:''}
+    </div>
+    <div class="prazo-data">
+      <div class="data-valor">${dataFmt}</div>
+      ${p.hora&&p.hora!=='23:59'?`<div class="data-hora">⏰ ${p.hora}</div>`:''}
+      ${!p.done?`<div class="data-label ${lblClass}">${label}</div>`:''}
+      <div style="margin-top:8px">
+        ${!p.done
+          ?`<button class="btn btn-success btn-sm" onclick="marcarFinalizado(${p.id})">✓ Finalizar</button>`
+          :`<button class="btn btn-outline btn-sm" onclick="reabrirPrazo(${p.id})">↩ Reabrir</button>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+async function marcarFinalizado(id) {
+  const idx = agenda.findIndex(p => p.id == id);
+  if (idx !== -1) agenda[idx].done = true;
+  if (SERVER_URL) { try { await fetch(`${SERVER_URL}/api/agenda/${id}/finalizar`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({done:true}) }); } catch(e){} }
+  renderAgenda();
+  showToast('✓ Prazo finalizado!');
+}
+
+async function reabrirPrazo(id) {
+  const idx = agenda.findIndex(p => p.id == id);
+  if (idx !== -1) agenda[idx].done = false;
+  if (SERVER_URL) { try { await fetch(`${SERVER_URL}/api/agenda/${id}/finalizar`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({done:false}) }); } catch(e){} }
+  renderAgenda();
+}
+
+function atualizarBadges() {
+  document.getElementById('badge-int').textContent = intimacoes.filter(i=>i.status==='pendente').length;
+  document.getElementById('badge-ag').textContent = agenda.filter(p=>!p.done).length;
+}
+
+function showToast(msg, tipo='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show' + (tipo==='error'?' error':tipo==='warn'?' warn':'');
+  setTimeout(()=>t.className='toast', 3000);
+}
+
+document.getElementById('modal-confirmar').addEventListener('click', function(e) { if(e.target===this) fecharModal(); });
+</script>
+</body>
+</html>
