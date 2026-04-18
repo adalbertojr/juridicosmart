@@ -386,6 +386,8 @@ async function carregarIntimacoes() {
 }
 
 async function buscarHoje() {
+    showToast('Execute o script buscar.py no seu computador para buscar novas intimações.', 'warn');
+} {
   const oab = document.getElementById('cfg-oab').value;
   const uf = document.getElementById('cfg-uf').value;
   const btn = document.getElementById('btn-buscar');
