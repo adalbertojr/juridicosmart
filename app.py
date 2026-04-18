@@ -1,24 +1,28 @@
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-import json, os, sqlite3
+import json, os, requests as httpx
 from datetime import datetime
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
-DB_PATH = "/tmp/juridicosmart.db"
+TURSO_URL = "https://juridicosmart-adalbertojr.aws-us-east-2.turso.io"
+TURSO_TOKEN = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzY1MTk4NzgsImlkIjoiMDE5ZGEwZDUtNGEwMS03NzZjLWIzNGUtNDJmY2RkODVmMWM2IiwicmlkIjoiZjdiOWU5MjctZjBlMy00NzRmLWE3OGItZDBjMjdiYWVmMjFmIn0.jMq5FtUE-NX-yTEPq8OKLIFG1TvMl3XmgI35yhUSnBB7lZOiXIuZouQ5sM3kpQu66bQJEvm-vcLCh1-TsYqDAg"
+HEADERS = {"Authorization": f"Bearer {TURSO_TOKEN}", "Content-Type": "application/json"}
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+def sql(stmt, args=[]):
+    body = {"statements": [{"q": stmt, "params": args}]}
+    r = httpx.post(f"{TURSO_URL}/v2/pipeline", headers=HEADERS, json=body, timeout=10)
+    print(f"SQL: {stmt[:50]} -> {r.status_code}")
+    if r.ok:
+        res = r.json()
+        if res and "results" in res[0]:
+            return res[0]["results"].get("rows", [])
+    return []
 
 def init_db():
-    conn = get_db()
-    conn.execute("CREATE TABLE IF NOT EXISTS intimacoes (id TEXT PRIMARY KEY, dados TEXT, status TEXT DEFAULT 'pendente', criado_em TEXT)")
-    conn.execute("CREATE TABLE IF NOT EXISTS agenda (id TEXT PRIMARY KEY, dados TEXT, done INTEGER DEFAULT 0, criado_em TEXT)")
-    conn.commit()
-    conn.close()
+    sql("CREATE TABLE IF NOT EXISTS intimacoes (id TEXT PRIMARY KEY, dados TEXT, status TEXT DEFAULT 'pendente', criado_em TEXT)")
+    sql("CREATE TABLE IF NOT EXISTS agenda (id TEXT PRIMARY KEY, dados TEXT, done INTEGER DEFAULT 0, criado_em TEXT)")
 
 @app.route('/')
 def index():
@@ -26,13 +30,11 @@ def index():
 
 @app.route("/api/status")
 def status():
-    return jsonify({"status": "ok", "versao": "4.1", "data": datetime.now().isoformat()})
+    return jsonify({"status": "ok", "versao": "5.0-turso-http", "data": datetime.now().isoformat()})
 
 @app.route("/api/intimacoes", methods=["GET"])
 def listar_intimacoes():
-    conn = get_db()
-    rows = conn.execute("SELECT dados, status FROM intimacoes ORDER BY criado_em DESC").fetchall()
-    conn.close()
+    rows = sql("SELECT dados, status FROM intimacoes ORDER BY criado_em DESC")
     result = []
     for row in rows:
         try: item = json.loads(row[0])
@@ -44,27 +46,19 @@ def listar_intimacoes():
 @app.route("/api/intimacoes", methods=["POST"])
 def salvar_intimacao():
     data = request.json
-    conn = get_db()
-    conn.execute("INSERT OR REPLACE INTO intimacoes (id,dados,status,criado_em) VALUES (?,?,?,?)",
+    sql("INSERT OR REPLACE INTO intimacoes (id,dados,status,criado_em) VALUES (?,?,?,?)",
         [str(data["id"]), json.dumps(data), data.get("status","pendente"), datetime.now().isoformat()])
-    conn.commit()
-    conn.close()
     return jsonify({"ok": True})
 
 @app.route("/api/intimacoes/<id>/status", methods=["PATCH"])
 def atualizar_status(id):
     data = request.json
-    conn = get_db()
-    conn.execute("UPDATE intimacoes SET status=? WHERE id=?", [data["status"], id])
-    conn.commit()
-    conn.close()
+    sql("UPDATE intimacoes SET status=? WHERE id=?", [data["status"], id])
     return jsonify({"ok": True})
 
 @app.route("/api/agenda", methods=["GET"])
 def listar_agenda():
-    conn = get_db()
-    rows = conn.execute("SELECT dados, done FROM agenda ORDER BY criado_em DESC").fetchall()
-    conn.close()
+    rows = sql("SELECT dados, done FROM agenda ORDER BY criado_em DESC")
     result = []
     for row in rows:
         try: item = json.loads(row[0])
@@ -76,28 +70,19 @@ def listar_agenda():
 @app.route("/api/agenda", methods=["POST"])
 def criar_prazo():
     data = request.json
-    conn = get_db()
-    conn.execute("INSERT OR REPLACE INTO agenda (id,dados,done,criado_em) VALUES (?,?,?,?)",
+    sql("INSERT OR REPLACE INTO agenda (id,dados,done,criado_em) VALUES (?,?,?,?)",
         [str(data["id"]), json.dumps(data), 0, datetime.now().isoformat()])
-    conn.commit()
-    conn.close()
     return jsonify({"ok": True})
 
 @app.route("/api/agenda/<id>/finalizar", methods=["PATCH"])
 def finalizar_prazo(id):
     data = request.json
-    conn = get_db()
-    conn.execute("UPDATE agenda SET done=? WHERE id=?", [1 if data.get("done") else 0, id])
-    conn.commit()
-    conn.close()
+    sql("UPDATE agenda SET done=? WHERE id=?", [1 if data.get("done") else 0, id])
     return jsonify({"ok": True})
 
 @app.route("/api/agenda/<id>", methods=["DELETE"])
 def deletar_prazo(id):
-    conn = get_db()
-    conn.execute("DELETE FROM agenda WHERE id=?", [id])
-    conn.commit()
-    conn.close()
+    sql("DELETE FROM agenda WHERE id=?", [id])
     return jsonify({"ok": True})
 
 init_db()
